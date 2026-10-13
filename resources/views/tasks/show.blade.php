@@ -14,11 +14,11 @@
         </nav>
         <h2 class="mb-0">{{ $task->title }}</h2>
     </div>
-    <span class="status-badge status-{{ $task->status }} fs-6">
-        @if($task->status === 'pending') معلق
-        @elseif($task->status === 'in_progress') قيد التنفيذ
-        @elseif($task->status === 'completed') مكتمل
-        @elseif($task->status === 'cancelled') ملغي
+    <span class="status-badge status-{{ $task->status->value }} fs-6">
+        @if($task->status === TaskStatus::PENDING) معلق
+        @elseif($task->status === TaskStatus::IN_PROGRESS) قيد التنفيذ
+        @elseif($task->status === TaskStatus::COMPLETED) مكتمل
+        @elseif($task->status === TaskStatus::CANCELLED) ملغي
         @endif
     </span>
 </div>
@@ -94,11 +94,11 @@
                     <tr>
                         <td class="text-muted ps-0" style="width: 40%;">الحالة</td>
                         <td>
-                            <span class="status-badge status-{{ $task->status }}">
-                                @if($task->status === 'pending') معلق
-                                @elseif($task->status === 'in_progress') قيد التنفيذ
-                                @elseif($task->status === 'completed') مكتمل
-                                @elseif($task->status === 'cancelled') ملغي
+                            <span class="status-badge status-{{ $task->status->value }}">
+                                @if($task->status === TaskStatus::PENDING) معلق
+                                @elseif($task->status === TaskStatus::IN_PROGRESS) قيد التنفيذ
+                                @elseif($task->status === TaskStatus::COMPLETED) مكتمل
+                                @elseif($task->status === TaskStatus::CANCELLED) ملغي
                                 @endif
                             </span>
                         </td>
@@ -117,7 +117,7 @@
                         <td class="text-muted ps-0">تاريخ التسليم</td>
                         <td>
                             @if($task->due_date)
-                                <span class="{{ $task->due_date->isPast() && $task->status !== 'completed' ? 'text-danger fw-bold' : '' }}">
+                                <span class="{{ $task->due_date->isPast() && $task->status !== TaskStatus::COMPLETED ? 'text-danger fw-bold' : '' }}">
                                     {{ $task->due_date->format('Y-m-d') }}
                                 </span>
                             @else
@@ -141,7 +141,7 @@
             </div>
         </div>
 
-        @if(auth()->id() === $task->project->user_id)
+        @if(auth()->id() === $task->project->owner_id)
         <div class="card mb-3">
             <div class="card-header">
                 <i class="fas fa-user-plus me-2"></i>إسناد المهمة
@@ -170,7 +170,7 @@
                 <i class="fas fa-cog me-2"></i>الإجراءات
             </div>
             <div class="card-body d-grid gap-2">
-                @if(auth()->id() === $task->project->user_id)
+                @if(auth()->id() === $task->project->owner_id)
                 <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#statusModal">
                     <i class="fas fa-sync me-2"></i>تغيير الحالة
                 </button>
@@ -179,7 +179,7 @@
                     <i class="fas fa-eye me-1"></i>وضع المشاهدة فقط
                 </div>
                 @endif
-                @if(auth()->id() === $task->project->user_id)
+                @if(auth()->id() === $task->project->owner_id)
                 <a href="{{ route('projects.show', $task->project) }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-right me-2"></i>العودة للمشروع
                 </a>
@@ -188,7 +188,7 @@
                     <i class="fas fa-arrow-right me-2"></i>العودة لمهامي
                 </a>
                 @endif
-                @if(auth()->id() === $task->project->user_id)
+                @if(auth()->id() === $task->project->owner_id)
                 <form action="{{ route('tasks.destroy', $task) }}" method="POST"
                       onsubmit="return confirm('هل أنت متأكد من حذف هذه المهمة؟')">
                     @csrf
@@ -215,10 +215,10 @@
                 </div>
                 <div class="modal-body">
                     <select name="status" class="form-select">
-                        <option value="pending" {{ $task->status === 'pending' ? 'selected' : '' }}>معلق</option>
-                        <option value="in_progress" {{ $task->status === 'in_progress' ? 'selected' : '' }}>قيد التنفيذ</option>
-                        <option value="completed" {{ $task->status === 'completed' ? 'selected' : '' }}>مكتمل</option>
-                        <option value="cancelled" {{ $task->status === 'cancelled' ? 'selected' : '' }}>ملغي</option>
+                        <option value="pending" {{ $task->status === TaskStatus::PENDING ? 'selected' : '' }}>معلق</option>
+                        <option value="in_progress" {{ $task->status === TaskStatus::IN_PROGRESS ? 'selected' : '' }}>قيد التنفيذ</option>
+                        <option value="completed" {{ $task->status === TaskStatus::COMPLETED ? 'selected' : '' }}>مكتمل</option>
+                        <option value="cancelled" {{ $task->status === TaskStatus::CANCELLED ? 'selected' : '' }}>ملغي</option>
                     </select>
                 </div>
                 <div class="modal-footer">

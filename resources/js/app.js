@@ -34,10 +34,10 @@ function updateUnreadBadge() {
 
 if (userId && window.Echo) {
     window.Echo.private(`App.Models.User.${userId}`)
-        .listen('.notification.sent', (e) => {
-            showToast(e.message || 'لديك إشعار جديد');
+        .listen('.BroadcastNotificationCreated', (e) => {
+            showToast(e.data.message || 'لديك إشعار جديد');
             updateUnreadBadge();
-            prependNotification(e);
+            prependNotification(e.data);
         });
 }
 
@@ -57,7 +57,7 @@ function prependNotification(data) {
             <small class="text-muted"><i class="fas fa-clock me-1"></i>الآن</small>
         </div>
         <p class="mb-1 fw-semibold">${data.message}</p>
-        <a href="/tasks/${data.taskId}" class="btn btn-sm btn-outline-primary mt-1">
+        <a href="/tasks/${data.task_id}" class="btn btn-sm btn-outline-primary mt-1">
             <i class="fas fa-eye me-1"></i>عرض المهمة
         </a>`;
     list.prepend(el);

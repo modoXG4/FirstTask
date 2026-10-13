@@ -12,7 +12,7 @@ class Comment extends Model
     protected $fillable = [
         'content',
         'task_id',
-        'user_id',
+        'owner_id',
     ];
 
     public function task(): BelongsTo

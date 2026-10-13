@@ -11,67 +11,52 @@ use App\Http\Requests\loginRequest;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Traits\ExpectsJsonTrait;
 
 class AuthController extends Controller
 {
-    use ApiResponseTrait;
+    use ApiResponseTrait, ExpectsJsonTrait;
 
     public function register(StoreUserRequest $request)
     {
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password,
-        ]);
+        $data = $request->validated();
+        $data['password'] = Hash::make($data['password']);
+        $user = User::create($data);
 
-        if ($request->expectsJson()) {
-            return $this->success(new UserResource($user), 'User registered successfully', 201);
-        }
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        return redirect()->route('login')->with('success', 'تم التسجيل بنجاح، سجّل دخولك.');
+        return $this->respondBasedOnRequest($request, [
+            'user'  => new UserResource($user),
+            'token' => $token,
+        ], 'projects.index', __('auth.created'));
     }
 
-    public function login(Request $request)
+    public function login(loginRequest $request)
     {
-        $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
-        $credentials = $request->only('email', 'password');
+        $credentials = $request->validated();
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            if ($request->expectsJson()) {
-                return $this->error('Invalid credentials', 401);
-            }
-            return back()->withErrors(['email' => 'البيانات غير صحيحة'])->onlyInput('email');
+        if (!$user || !Auth::attempt($credentials)) {
+            return $this->respondBasedOnRequest($request, null, 'login', __('auth.invalid_credentials')); 
         }
 
-        if ($request->expectsJson()) {
-            $token = $user->createToken('auth_token')->plainTextToken;
-            return $this->success([
-                'user'  => new UserResource($user),
-                'token' => $token,
-            ], 'User logged in successfully');
-        }
-      
-        Auth::login($user, $request->boolean('remember'));
-        $request->session()->regenerate();
-        return redirect()->intended(route('projects.index'));
+       return $this->respondBasedOnRequest($request, [
+            'user'  => new UserResource($user),
+            'token' => $user->createToken('auth_token')->plainTextToken,
+        ], 'projects.index', __('auth.logged_in'));
     }
 
     public function logout(Request $request)
     {
-        if ($request->expectsJson()) {
+        if($request->expectsJson()){
             $request->user()->currentAccessToken()->delete();
-            return $this->success(null, 'User logged out successfully');
+        }
+        else {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
 
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return redirect()->route('home');
+        return $this->respondBasedOnRequest($request, null, 'login', __('auth.logged_out'));
     }
 
     public function showLogin()

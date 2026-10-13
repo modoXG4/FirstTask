@@ -7,11 +7,18 @@ use App\Http\Resources\CommentResource;
 use App\Models\Task;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Models\Comment;
 
 class CommentController extends Controller
 {
-    use ApiResponseTrait;
+    use ApiResponseTrait, AuthorizesRequests, ExpectsJsonTrait;
+
+    public function __construct()
+    {
+        $this->authorizeResource(Comment::class, 'comment');
+    }
 
     public function index(Request $request, Task $task)
     {
@@ -26,14 +33,10 @@ class CommentController extends Controller
     public function store(StoreCommentRequest $request, Task $task)
     {
         $comment = $task->comments()->create([
-            'content' => $request->content,
-            'user_id' => $request->user()->id,
+            'content' => $request->validated()['content'],
+            'owner_id' => $request->user()->id,
         ]);
-
-        if ($request->expectsJson()) {
-            return $this->success(new CommentResource($comment->load('user')), 'Comment created successfully', 201);
-        }
-
-        return back()->with('success', 'تم إضافة التعليق بنجاح.');
+        
+        return $this->respondBasedOnRequest($request, new CommentResource($comment), 'tasks.show', __('comments.created'));
     }
 }

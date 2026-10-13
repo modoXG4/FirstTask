@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use App\http\Controllers\Enums\TaskStatus;
 class Task extends Model
 {
     protected $fillable = [
@@ -21,6 +21,7 @@ class Task extends Model
     {
         return [
             'due_date' => 'date',
+            'status' => TaskStatus::class,
         ];
     }
 

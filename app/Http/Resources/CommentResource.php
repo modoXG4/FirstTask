@@ -12,7 +12,7 @@ class CommentResource extends JsonResource
             'id' => $this->id,
             'content' => $this->content,
             'task_id' => $this->task_id,
-            'user_id' => $this->user_id,
+            'owner_id' => $this->owner_id,
             'user' => new UserResource($this->whenLoaded('user')),
             'created_at' => $this->created_at,
         ];

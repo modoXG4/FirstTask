@@ -6,6 +6,9 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use App\http\Controllers\Enums\TaskStatus;
+use App\Models\Task;
+use Illuminate\Support\Facades\Auth;
 
 class TaskCompletedNotification extends Notification
 {
@@ -27,7 +30,7 @@ class TaskCompletedNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database' , 'broadcast'];
     }
 
     /**
@@ -47,6 +50,15 @@ class TaskCompletedNotification extends Notification
      * @return array<string, mixed>
      */
     public function toArray(object $notifiable): array
+    {
+        return [
+            'task_id'    => $this->task->id,
+            'title'      => $this->task->title,
+            'message'    => 'تم إكمال المهمة: ' . $this->task->title,
+            'completed_by'=> auth()->user()->name,
+        ];
+    }
+    public function toBroadcast(object $notifiable): array
     {
         return [
             'task_id'    => $this->task->id,

@@ -15,11 +15,18 @@ use Illuminate\Support\Facades\Gate;
 use App\Events\NotificationSent;
 use App\Notifications\TaskAssignedNotification;
 use App\Notifications\TaskCompletedNotification;
+use App\http\Controllers\Enums\TaskStatus;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Traits\ExpectsJsonTrait;
 
 class TaskController extends Controller
 {
-    use ApiResponseTrait;
+    use ApiResponseTrait, AuthorizesRequests , ExpectsJsonTrait;
 
+    public function __construct()
+    {
+        $this->authorizeResource(Task::class, 'task');
+    }
     public function index(Request $request, $projectId)
     {
         $project = $request->user()->projects()->findOrFail($projectId);
@@ -35,24 +42,14 @@ class TaskController extends Controller
     {
         $project = $request->user()->projects()->findOrFail($request->project_id);
 
-        $task = Task::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'project_id' => $request->project_id,
-            'assigned_to' => $request->assigned_to,
-            'due_date' => $request->due_date,
-        ]);
+        $task = Task::create($request->validated());
 
         $project->status = 'in_progress';
         $project->save();
 
         $this->sendNotificationToAssignee($task);
 
-        if ($request->expectsJson()) {
-            return $this->success(new TaskResource($task->load('assignee')), 'Task created successfully', 201);
-        }
-
-        return redirect()->route('projects.show', $project)->with('success', 'تم إضافة المهمة بنجاح.');
+       return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.created'));
     }
 
     public function show(Request $request, Task $task)
@@ -62,11 +59,8 @@ class TaskController extends Controller
         }]);
 
         // Allow view if owner or assigned to user
-        if ($task->project->user_id !== $request->user()->id && $task->assigned_to !== $request->user()->id) {
-            if ($request->expectsJson()) {
-                return $this->error('Unauthorized', 403);
-            }
-            abort(403);
+        if ($task->project->owner_id !== $request->user()->id && $task->assigned_to !== $request->user()->id) {
+           return $this->respondBasedOnRequest($request, null, null, 'Unauthorized', 403);
         }
 
         if ($request->expectsJson()) {
@@ -77,122 +71,68 @@ class TaskController extends Controller
         return view('tasks.show', compact('task', 'users'));
     }
 
-    public function updateStatus(Request $request, Task $task)
+    public function updateStatus(UpdateStatusRequest $request, Task $task)
     {
-        $request->validate([
-            'status' => ['required', 'string', 'in:pending,in_progress,completed,cancelled'],
-        ]);
 
-        if (Gate::denies('update', $task)) {
-            if ($request->expectsJson()) {
-                return $this->error('Unauthorized', 403);
-            }
-            abort(403);
+        if ($task->status === TaskStatus::COMPLETED) {
+            return $this->respondBasedOnRequest($request, null, null, 'Task is already completed', 422);   
         }
 
-        if ($task->status === 'completed') {
-            if ($request->expectsJson()) {
-                return $this->error('Cannot change status of a completed task', 422);
-            }
-            return back()->with('error', 'لا يمكن تغيير حالة مهمة مكتملة.');
+        if ($request->validated()['status'] === TaskStatus::COMPLETED->value && $task->status !== TaskStatus::IN_PROGRESS) {
+            return $this->respondBasedOnRequest($request, null, null, 'Task must be in_progress before marking as completed', 422);
         }
 
-        if ($request->status === 'completed' && $task->status !== 'in_progress') {
-            if ($request->expectsJson()) {
-                return $this->error('Task must be in_progress before marking as completed', 422);
-            }
-            return back()->with('error', 'يجب أن تكون المهمة قيد التنفيذ أولاً.');
-        }
-
-        $task->update(['status' => $request->status]);
+        $task->update($request->validated());
 
         $this->sendNotificationToAssignee($task);
 
-        $project = $task->project;
-        $project->status = 'completed';
-        foreach ($project->tasks as $projectTask) {
-            if ($projectTask->status !== 'completed') {
-                $project->status = 'in_progress';
-                break;
-            }
-        }
-        $project->save();
 
-        if ($request->expectsJson()) {
-            return $this->success(new TaskResource($task->load('assignee')), 'Task status updated successfully');
-        }
-
-        return back()->with('success', 'تم تحديث الحالة بنجاح.');
+        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.status_updated'));
     }
 
     public function destroy(Request $request, Task $task)
     {
-        if (Gate::denies('delete', $task)) {
-            if ($request->expectsJson()) {
-                return $this->error('Unauthorized', 403);
-            }
-            abort(403);
-        }
 
         $project = $task->project;
         $task->delete();
 
-        if ($request->expectsJson()) {
-            return $this->success(null, 'Task deleted successfully');
-        }
-
-        return redirect()->route('projects.show', $project)->with('success', 'تم حذف المهمة بنجاح.');
+        return $this->respondBasedOnRequest($request, null, 'projects.show', __('tasks.deleted'));
     }
 
     public function assign(StoreAssinedTo $request, Task $task)
     {
-        if (Gate::denies('update', $task)) {
-            if ($request->expectsJson()) {
-                return $this->error('Unauthorized', 403);
-            }
-            abort(403);
-        }
-
-        $task->update(['assigned_to' => $request->assigned_to]);
+        $this->authorize('assign', $task);
+        $task->update($request->validated());
 
         $this->sendNotificationToAssignee($task);
 
-        if ($request->expectsJson()) {
-            return $this->success(new TaskResource($task->load('assignee')), 'Task assigned successfully');
-        }
-
-        return back()->with('success', 'تم إسناد المهمة بنجاح.');
+        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.assigned'));
     }
 
     public function assigned(Request $request)
     {
         $tasks = $request->user()->assignedTasks()->with(['project', 'assignee'])->latest()->get();
 
-        if ($request->expectsJson()) {
-            return $this->success(TaskResource::collection($tasks));
-        }
-
-        return view('tasks.assigned', compact('tasks'));
+        return $this->success(TaskResource::collection($tasks));
     }
 
     public function setDueDate(StoreDueDate $request, Task $task)
     {
-        $task->update(['due_date' => $request->due_date]);
+        $this->authorize('setDate', $task);
+        $task->update($request->validated());
 
-        return $this->success(new TaskResource($task->load('assignee')), 'Task due date updated successfully');
+        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.due_date_updated'));
     }
 
     private function sendNotificationToAssignee(Task $task)
     {
         $assignee = $task->assignee;
         $project_owner = $task->project->user;
-        if ($task->status !== 'completed' && $assignee && $assignee->id !== $project_owner->id) {
+        if ($task->status !== TaskStatus::COMPLETED && $assignee && $assignee->id !== $project_owner->id) {
             $assignee->notify(new TaskAssignedNotification($task));
-            NotificationSent::dispatch($assignee->id, 'تم إسناد مهمة جديدة لك: ' . $task->title,$task->id);
         }
-        if ($task->status === 'completed' && $project_owner && $project_owner->id !== auth()->user()->id) {
+        if ($task->status === TaskStatus::COMPLETED && $project_owner && $project_owner->id !== auth()->user()->id) {
             $project_owner->notify(new TaskCompletedNotification($task));
-            NotificationSent::dispatch($project_owner->id, 'تم إكمال المهمة: ' . $task->title,$task->id);
         }
     }
 }

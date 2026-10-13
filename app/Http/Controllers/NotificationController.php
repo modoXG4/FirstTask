@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\ApiResponseTrait;
+use App\Traits\ExpectsJsonTrait;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
+    use ApiResponseTrait, ExpectsJsonTrait;
+
     public function index(Request $request)
     {
         $notifications = $request->user()->notifications()->latest()->paginate(20);
         $unreadCount = $request->user()->unreadNotifications()->count();
 
-        if ($request->expectsJson()) {
-            return response()->json($notifications);
-        }
-
-        return view('notifications.index', compact('notifications', 'unreadCount'));
+        return $this->respondBasedOnRequest($request, [
+            'notifications' => $notifications,
+            'unreadCount' => $unreadCount,
+        ], 'notifications.index', __('notifications.list_success'));
     }
 
     public function markAsRead(Request $request, $id)
@@ -23,21 +26,13 @@ class NotificationController extends Controller
         $notification = $request->user()->notifications()->findOrFail($id);
         $notification->markAsRead();
 
-        if ($request->expectsJson()) {
-            return response()->json(['message' => 'Marked as read']);
-        }
-
-        return back()->with('success', 'تم تحديد الإشعار كمقروء.');
+        return $this->respondBasedOnRequest($request, null, 'notifications.index', __('notifications.marked_read'));
     }
 
     public function markAllAsRead(Request $request)
     {
         $request->user()->unreadNotifications->markAsRead();
 
-        if ($request->expectsJson()) {
-            return response()->json(['message' => 'All marked as read']);
-        }
-
-        return back()->with('success', 'تم تحديد كل الإشعارات كمقروءة.');
+        return $this->respondBasedOnRequest($request, null, 'notifications.index', __('notifications.marked_all_read'));
     }
 }

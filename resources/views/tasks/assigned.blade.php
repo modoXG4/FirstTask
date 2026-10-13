@@ -46,17 +46,17 @@
                         </a>
                     </td>
                     <td>
-                        <span class="status-badge status-{{ $task->status }}">
-                            @if($task->status === 'pending') معلق
-                            @elseif($task->status === 'in_progress') قيد التنفيذ
-                            @elseif($task->status === 'completed') مكتمل
-                            @elseif($task->status === 'cancelled') ملغي
+                        <span class="status-badge status-{{ $task->status->value }}">
+                            @if($task->status === TaskStatus::PENDING) معلق
+                            @elseif($task->status === TaskStatus::IN_PROGRESS) قيد التنفيذ
+                            @elseif($task->status === TaskStatus::COMPLETED) مكتمل
+                            @elseif($task->status === TaskStatus::CANCELLED) ملغي
                             @endif
                         </span>
                     </td>
                     <td>
                         @if($task->due_date)
-                            <span class="{{ $task->due_date->isPast() && $task->status !== 'completed' ? 'text-danger fw-bold' : '' }}">
+                            <span class="{{ $task->due_date->isPast() && $task->status !== TaskStatus::COMPLETED ? 'text-danger fw-bold' : '' }}">
                                 {{ $task->due_date->format('Y-m-d') }}
                             </span>
                         @else

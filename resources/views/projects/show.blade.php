@@ -75,11 +75,11 @@
                         @endif
                     </td>
                     <td>
-                        <span class="status-badge status-{{ $task->status }}">
-                            @if($task->status === 'pending') معلق
-                            @elseif($task->status === 'in_progress') قيد التنفيذ
-                            @elseif($task->status === 'completed') مكتمل
-                            @elseif($task->status === 'cancelled') ملغي
+                        <span class="status-badge status-{{ $task->status->value }}">
+                            @if($task->status === TaskStatus::PENDING) معلق
+                            @elseif($task->status === TaskStatus::IN_PROGRESS) قيد التنفيذ
+                            @elseif($task->status === TaskStatus::COMPLETED) مكتمل
+                            @elseif($task->status === TaskStatus::CANCELLED) ملغي
                             @endif
                         </span>
                     </td>
@@ -92,7 +92,7 @@
                     </td>
                     <td>
                         @if($task->due_date)
-                            <span class="{{ $task->due_date->isPast() && $task->status !== 'completed' ? 'text-danger fw-bold' : '' }}">
+                            <span class="{{ $task->due_date->isPast() && $task->status !== TaskStatus::COMPLETED ? 'text-danger fw-bold' : '' }}">
                                 <i class="fas fa-calendar me-1"></i>{{ $task->due_date->format('Y-m-d') }}
                             </span>
                         @else
@@ -157,10 +157,10 @@
                                         </div>
                                         <div class="modal-body">
                                             <select name="status" class="form-select">
-                                                <option value="pending" {{ $task->status === 'pending' ? 'selected' : '' }}>معلق</option>
-                                                <option value="in_progress" {{ $task->status === 'in_progress' ? 'selected' : '' }}>قيد التنفيذ</option>
-                                                <option value="completed" {{ $task->status === 'completed' ? 'selected' : '' }}>مكتمل</option>
-                                                <option value="cancelled" {{ $task->status === 'cancelled' ? 'selected' : '' }}>ملغي</option>
+                                                <option value="pending" {{ $task->status === TaskStatus::PENDING ? 'selected' : '' }}>معلق</option>
+                                                <option value="in_progress" {{ $task->status === TaskStatus::IN_PROGRESS ? 'selected' : '' }}>قيد التنفيذ</option>
+                                                <option value="completed" {{ $task->status === TaskStatus::COMPLETED ? 'selected' : '' }}>مكتمل</option>
+                                                <option value="cancelled" {{ $task->status === TaskStatus::CANCELLED ? 'selected' : '' }}>ملغي</option>
                                             </select>
                                         </div>
                                         <div class="modal-footer">

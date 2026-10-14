@@ -15,10 +15,14 @@ class NotificationController extends Controller
         $notifications = $request->user()->notifications()->latest()->paginate(20);
         $unreadCount = $request->user()->unreadNotifications()->count();
 
-        return $this->respondBasedOnRequest($request, [
-            'notifications' => $notifications,
-            'unreadCount' => $unreadCount,
-        ], 'notifications.index', __('notifications.list_success'));
+        if ($request->expectsJson()) {
+            return $this->success([
+                'notifications' => $notifications,
+                'unreadCount' => $unreadCount,
+            ], __('notifications.list_success'));
+        }
+
+        return view('notifications.index', compact('notifications', 'unreadCount'));
     }
 
     public function markAsRead(Request $request, $id)

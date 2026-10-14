@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\Comment;
+use App\Traits\ExpectsJsonTrait;
 
 class CommentController extends Controller
 {
@@ -37,6 +38,6 @@ class CommentController extends Controller
             'owner_id' => $request->user()->id,
         ]);
         
-        return $this->respondBasedOnRequest($request, new CommentResource($comment), 'tasks.show', __('comments.created'));
+        return $this->respondBasedOnRequest($request, new CommentResource($comment), 'tasks.show', __('comments.created'), 200, [$task]);
     }
 }

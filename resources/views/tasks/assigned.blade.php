@@ -1,19 +1,21 @@
 @extends('layouts.app')
 
-@section('title', 'مهامي')
+@php use App\Http\Controllers\enums\TaskStatus; @endphp
+
+@section('title', __('ui.tasks.my_tasks_title'))
 
 @section('content')
 <div class="page-header">
-    <h2><i class="fas fa-user-check me-2"></i>المهام الموكلة إلي</h2>
-    <p class="text-muted">كل المهام التي تم إسنادها إليك من جميع المشاريع</p>
+    <h2><i class="fas fa-user-check me-2"></i>{{ __('ui.tasks.my_tasks_title') }}</h2>
+    <p class="text-muted">{{ __('ui.tasks.my_tasks_sub') }}</p>
 </div>
 
 @if($tasks->isEmpty())
 <div class="card">
     <div class="empty-state">
         <i class="fas fa-clipboard-check"></i>
-        <h5>لا توجد مهام موكلة إليك</h5>
-        <p>عندما يسند إليك أحد مهمة ستظهر هنا</p>
+        <h5>{{ __('ui.tasks.empty_title') }}</h5>
+        <p>{{ __('ui.tasks.empty_desc') }}</p>
     </div>
 </div>
 @else
@@ -22,10 +24,10 @@
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>المهمة</th>
-                    <th>المشروع</th>
-                    <th>الحالة</th>
-                    <th>تاريخ التسليم</th>
+                    <th>{{ __('ui.projects.task') }}</th>
+                    <th>{{ __('ui.tasks.project') }}</th>
+                    <th>{{ __('ui.tasks.status') }}</th>
+                    <th>{{ __('ui.tasks.due_date') }}</th>
                     <th></th>
                 </tr>
             </thead>
@@ -47,11 +49,7 @@
                     </td>
                     <td>
                         <span class="status-badge status-{{ $task->status->value }}">
-                            @if($task->status === TaskStatus::PENDING) معلق
-                            @elseif($task->status === TaskStatus::IN_PROGRESS) قيد التنفيذ
-                            @elseif($task->status === TaskStatus::COMPLETED) مكتمل
-                            @elseif($task->status === TaskStatus::CANCELLED) ملغي
-                            @endif
+                            {{ __('ui.status.' . $task->status->value) }}
                         </span>
                     </td>
                     <td>
@@ -60,11 +58,11 @@
                                 {{ $task->due_date->format('Y-m-d') }}
                             </span>
                         @else
-                            <span class="text-muted">غير محدد</span>
+                            <span class="text-muted">{{ __('ui.common.not_set') }}</span>
                         @endif
                     </td>
                     <td>
-                        <a href="{{ route('tasks.show', $task) }}" class="btn btn-sm btn-outline-primary">
+                        <a href="{{ route('tasks.show', $task) }}" class="btn btn-sm btn-outline-primary" title="{{ __('ui.common.view') }}">
                             <i class="fas fa-eye"></i>
                         </a>
                     </td>

@@ -49,7 +49,7 @@ class TaskController extends Controller
 
         $this->sendNotificationToAssignee($task);
 
-       return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.created'));
+       return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.created'), 200, [$project]);
     }
 
     public function show(Request $request, Task $task)
@@ -87,7 +87,7 @@ class TaskController extends Controller
         $this->sendNotificationToAssignee($task);
 
 
-        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.status_updated'));
+        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.status_updated'), 200, [$task->project]);
     }
 
     public function destroy(Request $request, Task $task)
@@ -96,7 +96,7 @@ class TaskController extends Controller
         $project = $task->project;
         $task->delete();
 
-        return $this->respondBasedOnRequest($request, null, 'projects.show', __('tasks.deleted'));
+        return $this->respondBasedOnRequest($request, null, 'projects.show', __('tasks.deleted'), 200, [$project]);
     }
 
     public function assign(StoreAssinedTo $request, Task $task)
@@ -106,14 +106,18 @@ class TaskController extends Controller
 
         $this->sendNotificationToAssignee($task);
 
-        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.assigned'));
+        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.assigned'), 200, [$task->project]);
     }
 
     public function assigned(Request $request)
     {
         $tasks = $request->user()->assignedTasks()->with(['project', 'assignee'])->latest()->get();
 
-        return $this->success(TaskResource::collection($tasks));
+        if ($request->expectsJson()) {
+            return $this->success(TaskResource::collection($tasks));
+        }
+
+        return view('tasks.assigned', compact('tasks'));
     }
 
     public function setDueDate(StoreDueDate $request, Task $task)
@@ -121,7 +125,7 @@ class TaskController extends Controller
         $this->authorize('setDate', $task);
         $task->update($request->validated());
 
-        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.due_date_updated'));
+        return $this->respondBasedOnRequest($request, new TaskResource($task->load('assignee')), 'projects.show', __('tasks.due_date_updated'), 200, [$task->project]);
     }
 
     private function sendNotificationToAssignee(Task $task)

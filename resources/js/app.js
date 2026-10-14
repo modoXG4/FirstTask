@@ -35,30 +35,33 @@ function updateUnreadBadge() {
 if (userId && window.Echo) {
     window.Echo.private(`App.Models.User.${userId}`)
         .listen('.BroadcastNotificationCreated', (e) => {
-            showToast(e.data.message || 'لديك إشعار جديد');
+            showToast(e.data.message || (window.AppMessages?.newNotification ?? 'لديك إشعار جديد'));
             updateUnreadBadge();
             prependNotification(e.data);
         });
 }
 
 function prependNotification(data) {
-    const list = document.querySelector('#notification-list');
+    const list = document.querySelector('#notifications-list');
     if (!list) return; // نحنا مو ع صفحة الإشعارات
 
-    // أخفي كلمة "لا توجد إشعارات" إذا كانت ظاهرة
-    const empty = document.querySelector('#empty-state');
-    if (empty) empty.remove();
+    // أخفي حالة "لا توجد إشعارات" وأظهر البطاقة
+    const empty = document.querySelector('#empty-notifications');
+    const card = document.querySelector('#notifications-card');
+    if (empty) empty.classList.add('d-none');
+    if (card) card.classList.remove('d-none');
 
     const el = document.createElement('div');
     el.className = 'list-group-item bg-light';
+    const t = window.AppMessages ?? {};
     el.innerHTML = `
         <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="badge bg-primary rounded-pill">جديد</span>
-            <small class="text-muted"><i class="fas fa-clock me-1"></i>الآن</small>
+            <span class="badge bg-primary rounded-pill">${t.newBadge ?? 'جديد'}</span>
+            <small class="text-muted"><i class="fas fa-clock me-1"></i>${t.now ?? 'الآن'}</small>
         </div>
         <p class="mb-1 fw-semibold">${data.message}</p>
         <a href="/tasks/${data.task_id}" class="btn btn-sm btn-outline-primary mt-1">
-            <i class="fas fa-eye me-1"></i>عرض المهمة
+            <i class="fas fa-eye me-1"></i>${t.viewTask ?? 'عرض المهمة'}
         </a>`;
     list.prepend(el);
 }

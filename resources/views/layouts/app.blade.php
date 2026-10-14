@@ -1,13 +1,25 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="user-id" content="{{ auth()->check() ? auth()->id() : '' }}">
-    <title>@yield('title', 'إدارة المهام')</title>
+    <title>@yield('title', __('ui.app_name'))</title>
+    <script>
+        window.AppMessages = {
+            newNotification: @json(__('ui.notifications.realtime')),
+            newBadge: @json(__('ui.notifications.new')),
+            now: @json(__('ui.notifications.now')),
+            viewTask: @json(__('ui.notifications.view_task')),
+        };
+    </script>
     @vite(['resources/js/app.js'])
+    @if(app()->getLocale() === 'ar')
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    @else
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    @endif
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -204,13 +216,62 @@
         .breadcrumb-item + .breadcrumb-item::before {
             content: "→";
         }
+
+        [dir="rtl"] .breadcrumb-item + .breadcrumb-item::before {
+            content: "←";
+        }
+
+        .auth-wrap {
+            position: relative;
+            border-radius: 24px;
+            padding: 2.75rem 1rem 3.5rem;
+            overflow: hidden;
+            background: linear-gradient(-45deg, #eef2ff, #faf5ff, #fdf2f8, #eff6ff);
+            background-size: 300% 300%;
+            animation: authGradient 18s ease infinite;
+        }
+
+        @keyframes authGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .auth-wrap::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(99, 102, 241, 0.14) 1px, transparent 1px);
+            background-size: 22px 22px;
+            pointer-events: none;
+        }
+
+        .auth-card {
+            position: relative;
+            z-index: 2;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -20px rgba(79, 70, 229, 0.4);
+            animation: authIn 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+        }
+
+        @keyframes authIn {
+            from { opacity: 0; transform: translateY(28px) scale(0.98); }
+            to { opacity: 1; transform: none; }
+        }
+
+        .auth-card .card-header {
+            background: transparent;
+        }
     </style>
+    @stack('styles')
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container">
             <a class="navbar-brand fw-bold" href="{{ route('home') }}">
-                <i class="fas fa-tasks me-2"></i>إدارة المهام
+                <i class="fas fa-tasks me-2"></i>{{ __('ui.app_name') }}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -220,22 +281,43 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('projects.index') }}">
-                            <i class="fas fa-folder me-1"></i>المشاريع
+                            <i class="fas fa-folder me-1"></i>{{ __('ui.nav.projects') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('tasks.assigned') }}">
-                            <i class="fas fa-user-check me-1"></i>مهامي
+                            <i class="fas fa-user-check me-1"></i>{{ __('ui.nav.my_tasks') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link position-relative" href="{{ route('notifications.index') }}">
-                            <i class="fas fa-bell me-1"></i>الإشعارات
+                            <i class="fas fa-bell me-1"></i>{{ __('ui.nav.notifications') }}
                             <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ auth()->user()->unreadNotifications()->count() > 0 ? '' : 'd-none' }}" style="font-size:0.6rem;">{{ auth()->user()->unreadNotifications()->count() }}</span>
                         </a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" title="{{ __('ui.nav.language') }}">
+                            <i class="fas fa-globe me-1"></i>{{ app()->getLocale() === 'ar' ? 'العربية' : 'English' }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <form action="{{ route('locale.update', 'ar') }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <button type="submit" class="dropdown-item {{ app()->getLocale() === 'ar' ? 'active' : '' }}">العربية</button>
+                                </form>
+                            </li>
+                            <li>
+                                <form action="{{ route('locale.update', 'en') }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <button type="submit" class="dropdown-item {{ app()->getLocale() === 'en' ? 'active' : '' }}">English</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <span class="nav-link">
                             <i class="fas fa-user-circle me-1"></i>{{ auth()->user()->name }}
@@ -245,7 +327,7 @@
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="nav-link btn btn-link">
-                                <i class="fas fa-sign-out-alt me-1"></i>خروج
+                                <i class="fas fa-sign-out-alt me-1"></i>{{ __('ui.nav.logout') }}
                             </button>
                         </form>
                     </li>
@@ -254,12 +336,12 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('login') }}">
-                            <i class="fas fa-sign-in-alt me-1"></i>دخول
+                            <i class="fas fa-sign-in-alt me-1"></i>{{ __('ui.nav.login') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('register') }}">
-                            <i class="fas fa-user-plus me-1"></i>تسجيل
+                            <i class="fas fa-user-plus me-1"></i>{{ __('ui.nav.register') }}
                         </a>
                     </li>
                 </ul>
@@ -286,7 +368,7 @@
         @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>يرجى تصحيح الأخطاء التالية:</strong>
+            <strong>{{ __('ui.errors.title') }}</strong>
             <ul class="mb-0 mt-2">
                 @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
@@ -301,7 +383,7 @@
 
     <footer class="footer-bar">
         <div class="container">
-            نظام إدارة المهام &copy; {{ date('Y') }}
+            {{ __('ui.footer') }} &copy; {{ date('Y') }}
         </div>
     </footer>
 

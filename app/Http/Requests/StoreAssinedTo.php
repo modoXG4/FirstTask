@@ -23,7 +23,7 @@ class StoreAssinedTo extends FormRequest
     public function rules(): array
     {
         return [
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_to' => 'nullable|exists:users,id',
         ];
     }
 }

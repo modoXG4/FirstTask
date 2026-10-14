@@ -32,9 +32,11 @@ class ProjectController extends Controller
             },
         ])->get();
 
-        return $this->respondBasedOnRequest($request, [
-            'projects' => $projects
-        ], 'projects.index', __('projects.list_success'));
+        if ($request->expectsJson()) {
+            return $this->success(['projects' => $projects], __('projects.list_success'));
+        }
+
+        return view('projects.index', compact('projects'));
     }
 
     public function store(StoreProjectRequest $request)
@@ -54,7 +56,12 @@ class ProjectController extends Controller
             $query->with('assignee')->latest();
         }]);
 
-        return $this->respondBasedOnRequest($request, new ProjectResource($project), 'projects.show', __('projects.show_success'));
+        if ($request->expectsJson()) {
+            return $this->success(new ProjectResource($project), __('projects.show_success'));
+        }
+
+        $users = User::all();
+        return view('projects.show', compact('project', 'users'));
     }
 
     public function update(UpdateProjectRequest $request, Project $project)
@@ -62,7 +69,7 @@ class ProjectController extends Controller
         $this->authorize('update', $project);
         $project->update($request->validated());
 
-        return $this->respondBasedOnRequest($request, new ProjectResource($project), 'projects.show', __('projects.updated'));
+        return $this->respondBasedOnRequest($request, new ProjectResource($project), 'projects.show', __('projects.updated'), 200, [$project]);
     }
 
     public function destroy(Request $request, Project $project)

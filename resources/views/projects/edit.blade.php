@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'تعديل المشروع')
+@section('title', __('ui.projects.edit_title'))
 
 @section('content')
 <div class="row justify-content-center">
@@ -9,7 +9,7 @@
             <a href="{{ route('projects.show', $project) }}" class="btn btn-outline-secondary btn-sm me-3">
                 <i class="fas fa-arrow-right"></i>
             </a>
-            <h2 class="mb-0"><i class="fas fa-edit me-2"></i>تعديل المشروع</h2>
+            <h2 class="mb-0"><i class="fas fa-edit me-2"></i>{{ __('ui.projects.edit_title') }}</h2>
         </div>
 
         <div class="card">
@@ -19,7 +19,7 @@
                     @method('PUT')
 
                     <div class="mb-3">
-                        <label for="name" class="form-label fw-semibold">اسم المشروع <span class="text-danger">*</span></label>
+                        <label for="name" class="form-label fw-semibold">{{ __('ui.projects.name') }} <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @error('name') is-invalid @enderror"
                                id="name" name="name" value="{{ old('name', $project->name) }}" required>
                         @error('name')
@@ -28,7 +28,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="description" class="form-label fw-semibold">الوصف</label>
+                        <label for="description" class="form-label fw-semibold">{{ __('ui.projects.description') }}</label>
                         <textarea class="form-control @error('description') is-invalid @enderror"
                                   id="description" name="description" rows="4">{{ old('description', $project->description) }}</textarea>
                         @error('description')
@@ -38,10 +38,10 @@
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>تحديث
+                            <i class="fas fa-save me-2"></i>{{ __('ui.common.update') }}
                         </button>
                         <a href="{{ route('projects.show', $project) }}" class="btn btn-secondary">
-                            <i class="fas fa-times me-2"></i>إلغاء
+                            <i class="fas fa-times me-2"></i>{{ __('ui.common.cancel') }}
                         </a>
                     </div>
                 </form>
